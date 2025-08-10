@@ -1,120 +1,377 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Mode Flush Game</title>
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #121212;
-    color: #e0e0e0;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-  header {
-    background: #1e1e1e;
-    padding: 1rem;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border-bottom: 1px solid #333;
-  }
-  .columns {
-    flex: 1;
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-  .column {
-    flex: 1;
-    background: #1c1c1c;
-    border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    font-weight: bold;
-  }
-  button {
-    background: #bb86fc;
-    color: black;
-    padding: 1rem 2rem;
-    margin: 0.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  button:hover {
-    background: #9a67ea;
-  }
-  footer {
-    background: #1e1e1e;
-    text-align: center;
-    padding: 1rem;
-    border-top: 1px solid #333;
-  }
-  /* Full-screen flush overlay */
-  .overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 3rem;
-    animation: flushAnim 1.5s forwards;
-  }
-  @keyframes flushAnim {
-    0% { opacity: 1; }
-    100% { opacity: 0; visibility: hidden; }
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mind Flush</title>
+  <style>
+    /* ---- Reset & base ---- */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(22,28,45,0.6), transparent),
+                  radial-gradient(900px 400px at 90% 90%, rgba(6,24,38,0.6), transparent),
+                  #0b1020;
+      color:#e6eef8;
+      -webkit-font-smoothing:antialiased;
+      display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px;
+      overflow:hidden;
+    }
+
+    /* soft floating particles (pure CSS) */
+    .particles{position:fixed;inset:0;pointer-events:none;opacity:0.08}
+    .particle{position:absolute;background:linear-gradient(90deg,#7dd3fc55,#60a5fa55);border-radius:50%;filter:blur(18px)}
+
+    /* App shell */
+    .app{width:100%;max-width:1200px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:18px;padding:22px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{font-size:20px;padding:8px 12px;border-radius:10px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02)}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:#9fb3d7}
+
+    /* Columns layout */
+    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+    .column{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,0.03);min-height:360px;display:flex;flex-direction:column}
+
+    .col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .col-title{font-weight:600}
+    .col-desc{font-size:12px;color:#93a6c2}
+
+    .input-row{display:flex;gap:8px;margin-bottom:12px}
+    .input-row input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:inherit;outline:none}
+    .input-row button{padding:10px 12px;border-radius:10px;border:none;background:#34d399;color:#022;cursor:pointer;font-weight:700}
+
+    /* list area */
+    .list{flex:1;overflow:auto;padding-right:6px}
+    .item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);cursor:grab}
+    .item.dragging{opacity:0.6;transform:scale(1.02)}
+    .num{min-width:28px;height:28px;display:inline-grid;place-items:center;border-radius:8px;background:linear-gradient(90deg,#0ea5a17a,#60a5fa4a);color:#012;padding:4px 8px;font-weight:700}
+    .txt{flex:1;word-break:break-word}
+    .meta{font-size:12px;color:#91b0d2}
+
+    .item .actions{display:flex;gap:8px;margin-left:8px}
+    .btn-clear{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px;border-radius:8px;color:#9fb3d7;cursor:pointer}
+    .btn-strike{background:transparent;border:none;color:#9fb3d7;cursor:pointer}
+    .struck{opacity:0.6;text-decoration:line-through;color:#7ea0c9}
+
+    /* Flush area */
+    .flush-wrap{display:flex;align-items:center;justify-content:center;margin-top:18px}
+    .flush-btn{background:linear-gradient(90deg,#ff6b6b,#ff4d6d);border:none;padding:14px 28px;border-radius:16px;color:white;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 12px 30px rgba(255,77,77,0.12)}
+    .flush-btn:active{transform:translateY(2px)}
+
+    /* center vortex for animation */
+    .vortex{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;mix-blend-mode:screen}
+    .vortex .ring{width:260px;height:260px;border-radius:50%;background:conic-gradient(from 90deg, #60a5fa33, #7dd3fc33, #60a5fa33,#0f172a);filter:blur(30px);opacity:0;transform:scale(0.6);transition:all 600ms cubic-bezier(.2,.9,.3,1)}
+    .vortex.show .ring{opacity:1;transform:scale(1)}
+
+    /* metrics modal */
+    .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.9);background:rgb(44, 49, 64);padding:22px;border-radius:14px;border:1px solid rgba(255,255,255,0.05);width:min(520px,92%);text-align:center;box-shadow:0 20px 60px rgba(2,6,23,0.6);opacity:0;pointer-events:none}
+    .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+    .metrics-grid{display:flex;gap:12px;justify-content:center;margin-top:12px}
+    .metric{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;min-width:120px}
+
+    .suggestions{margin-top:12px;color:#bfe9c7}
+
+    /* small screens */
+    @media (max-width:920px){.board{grid-template-columns:1fr;}.flush-wrap{position:sticky;bottom:8px}} 
+  </style>
 </head>
 <body>
+  <!-- Particles (decorative) -->
+  <div class="particles" aria-hidden="true">
+    <div class="particle" style="left:6%;top:10%;width:180px;height:180px;opacity:0.12"></div>
+    <div class="particle" style="left:70%;top:5%;width:240px;height:240px;opacity:0.08"></div>
+    <div class="particle" style="left:30%;top:70%;width:140px;height:140px;opacity:0.07"></div>
+    <div class="particle" style="left:82%;top:65%;width:100px;height:100px;opacity:0.06"></div>
+  </div>
 
-<header>Flush Game (Dark Mode)</header>
+  <div class="app" role="application">
+    <header>
+      <div class="logo">🧠 Mind Flush</div>
+      <div style="flex:1">
+        <h1>Mind Flush — Sort, Release, Move On</h1>
+        <p class="lead">Three quick columns: <strong>People</strong>, <strong>Incidents</strong>, and <strong>Random Thoughts</strong>. Add, drag, strike, flush.</p>
+      </div>
+      
+    </header>
 
-<div class="columns">
-  <div class="column" id="col1">🍎</div>
-  <div class="column" id="col2">🍌</div>
-  <div class="column" id="col3">🍒</div>
-</div>
+    <main class="board" aria-live="polite">
+      <!-- Column 1: People -->
+      <section class="column" data-col="people">
+        <div class="col-head">
+          <div>
+            <div class="col-title">People</div>
+            <div class="col-desc">Names that pop into your head (friends, celebs...)</div>
+          </div>
+          <div class="col-count meta" id="count-people">0</div>
+        </div>
 
-<footer>
-  <button onclick="spin()">Spin</button>
-  <button onclick="flush()">Flush</button>
-</footer>
+        <div class="input-row">
+          <input id="in-people" placeholder="Type a name and press Enter" aria-label="People input" />
+          <button data-add="people">Add</button>
+        </div>
 
-<script>
-const items = ["🍎","🍌","🍒","🍇","🍊","🍉","🍓","🍍","🥭","🍋"];
+        <div class="list" id="list-people" ondragover="event.preventDefault()"></div>
+      </section>
 
-function spin(){
-  document.getElementById('col1').textContent = items[Math.floor(Math.random()*items.length)];
-  document.getElementById('col2').textContent = items[Math.floor(Math.random()*items.length)];
-  document.getElementById('col3').textContent = items[Math.floor(Math.random()*items.length)];
-}
+      <!-- Column 2: Incidents -->
+      <section class="column" data-col="incidents">
+        <div class="col-head">
+          <div>
+            <div class="col-title">Incidents</div>
+            <div class="col-desc">Events or memories that loop in your mind</div>
+          </div>
+          <div class="col-count meta" id="count-incidents">0</div>
+        </div>
 
-function flush(){
-  const overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.textContent = '💨 Flushed!';
-  document.body.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 1500);
-}
-</script>
+        <div class="input-row">
+          <input id="in-incidents" placeholder="Type an incident (brief)" aria-label="Incidents input" />
+          <button data-add="incidents">Add</button>
+        </div>
 
+        <div class="list" id="list-incidents" ondragover="event.preventDefault()"></div>
+      </section>
+
+      <!-- Column 3: Random Thoughts -->
+      <section class="column" data-col="random">
+        <div class="col-head">
+          <div>
+            <div class="col-title">Random Thoughts</div>
+            <div class="col-desc">Anything else — stray thoughts, worries, ideas</div>
+          </div>
+          <div class="col-count meta" id="count-random">0</div>
+        </div>
+
+        <div class="input-row">
+          <input id="in-random" placeholder="Dump your thought quickly" aria-label="Random input" />
+          <button data-add="random">Add</button>
+        </div>
+
+        <div class="list" id="list-random" ondragover="event.preventDefault()"></div>
+      </section>
+    </main>
+
+    <div class="flush-wrap">
+      <button class="flush-btn" id="flushBtn">🚀 FLUSH ALL (Clear Mind)</button>
+    </div>
+  </div>
+
+  <!-- Vortex + Modal -->
+  <div class="vortex" id="vortex"><div class="ring"></div></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div id="modalContent">
+      <h2 id="modalTitle">✨ Mind Cleared</h2>
+      <p id="modalText">Generating your tidy brain metrics...</p>
+      <div class="metrics-grid" id="metricsGrid">
+        <div class="metric"><div class="m-num" id="m-names">0</div><div class="m-label">Names</div></div>
+        <div class="metric"><div class="m-num" id="m-incidents">0</div><div class="m-label">Incidents</div></div>
+        <div class="metric"><div class="m-num" id="m-random">0</div><div class="m-label">Thoughts</div></div>
+      </div>
+      <div class="suggestions" id="suggestions"></div>
+      <div style="margin-top:14px"><button class="flush-btn" id="closeModal">Done</button></div>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    const state = { people:[], incidents:[], random:[] };
+
+    // --- Helpers ---
+    function $(s){return document.querySelector(s)}
+    function $all(s){return Array.from(document.querySelectorAll(s))}
+
+    function renderList(col){
+      const listEl = document.getElementById('list-'+col);
+      listEl.innerHTML = '';
+      state[col].forEach((text, i) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.draggable = true;
+        item.dataset.col = col;
+        item.dataset.index = i;
+
+        item.addEventListener('dragstart', (ev)=>{
+          ev.dataTransfer.setData('text/plain', JSON.stringify({col, index:i}));
+          item.classList.add('dragging');
+        });
+        item.addEventListener('dragend', ()=>item.classList.remove('dragging'));
+
+        item.addEventListener('click', (e)=>{
+          // toggle strike on text when clicked
+          const txt = item.querySelector('.txt');
+          txt.classList.toggle('struck');
+        });
+
+        item.addEventListener('dblclick', (e)=>{
+          // remove on double-click
+          state[col].splice(i,1); renderAll();
+        });
+
+        const num = document.createElement('div'); num.className='num'; num.textContent = (i+1);
+        const txt = document.createElement('div'); txt.className='txt'; txt.textContent = text;
+        const actions = document.createElement('div'); actions.className='actions';
+
+        const moveBtn = document.createElement('button'); moveBtn.className='btn-clear'; moveBtn.title='Move'; moveBtn.textContent='⇄';
+        moveBtn.onclick = (ev)=>openMoveMenu(col,i);
+
+        const delBtn = document.createElement('button'); delBtn.className='btn-clear'; delBtn.title='Delete'; delBtn.textContent='🗑';
+        delBtn.onclick = (ev)=>{ state[col].splice(i,1); renderAll(); };
+
+        actions.append(moveBtn, delBtn);
+        item.append(num, txt, actions);
+        listEl.appendChild(item);
+      });
+
+      document.getElementById('count-'+col).textContent = state[col].length;
+    }
+
+    function renderAll(){ ['people','incidents','random'].forEach(renderList) }
+
+    // --- Input wiring ---
+    document.querySelectorAll('[data-add]').forEach(btn=>{
+      const col = btn.dataset.add;
+      btn.addEventListener('click', ()=>{ addFromInput(col); });
+    });
+    document.getElementById('in-people').addEventListener('keypress',(e)=>{ if(e.key==='Enter') addFromInput('people') });
+    document.getElementById('in-incidents').addEventListener('keypress',(e)=>{ if(e.key==='Enter') addFromInput('incidents') });
+    document.getElementById('in-random').addEventListener('keypress',(e)=>{ if(e.key==='Enter') addFromInput('random') });
+
+    function addFromInput(col){
+      const input = document.getElementById('in-'+col);
+      const v = input.value.trim();
+      if(!v) return;
+      state[col].push(v);
+      input.value='';
+      renderList(col);
+      // visually highlight new item
+      const listEl = document.getElementById('list-'+col);
+      const newItem = listEl.lastChild;
+      if(newItem){ newItem.animate([{transform:'scale(.98)'},{transform:'scale(1)'}],{duration:220,easing:'ease'}) }
+    }
+
+    // --- Drag & drop between columns ---
+    ['list-people','list-incidents','list-random'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.addEventListener('drop', (ev)=>{
+        ev.preventDefault();
+        try{
+          const data = JSON.parse(ev.dataTransfer.getData('text/plain'));
+          const fromCol = data.col; const idx = data.index; const text = state[fromCol][idx];
+          // remove then insert into target
+          state[fromCol].splice(idx,1);
+          const toCol = id.replace('list-','');
+          state[toCol].push(text);
+          renderAll();
+        }catch(e){console.warn(e)}
+      });
+    });
+
+    // --- Move menu (simple prompt) ---
+    function openMoveMenu(col,index){
+      const target = prompt('Move to which column? (people / incidents / random)');
+      if(!target) return;
+      if(!['people','incidents','random'].includes(target)) return alert('Invalid');
+      const text = state[col][index];
+      state[col].splice(index,1);
+      state[target].push(text);
+      renderAll();
+    }
+
+    // --- Flush animation & metrics ---
+    const flushBtn = document.getElementById('flushBtn');
+    const vortex = document.getElementById('vortex');
+    const modal = document.getElementById('modal');
+
+    flushBtn.addEventListener('click', async ()=>{
+      if(state.people.length+state.incidents.length+state.random.length===0){
+        showToast('Your mind is already clear 🌿');
+        return;
+      }
+
+      // show vortex
+      vortex.classList.add('show');
+
+      // animate each item flying to center
+      const allItems = $all('.item');
+      allItems.forEach((it, i)=>{
+        const rect = it.getBoundingClientRect();
+        const cx = window.innerWidth/2; const cy = window.innerHeight/2;
+        const dx = cx - (rect.left + rect.width/2);
+        const dy = cy - (rect.top + rect.height/2);
+        it.style.transition = 'transform 800ms cubic-bezier(.2,.9,.3,1),opacity 500ms';
+        it.style.transform = `translate(${dx}px, ${dy}px) scale(0.25) rotate(${(Math.random()*60-30)}deg)`;
+        it.style.opacity = '0';
+      });
+
+      // wait for animation
+      await new Promise(r=>setTimeout(r,900));
+
+      // count numbers
+      const namesCleared = state.people.length;
+      const incCleared = state.incidents.length;
+      const randCleared = state.random.length;
+
+      // clear state
+      state.people=[]; state.incidents=[]; state.random=[];
+      renderAll();
+
+      // hide vortex after a moment and show modal metrics
+      await new Promise(r=>setTimeout(r,220));
+      vortex.classList.remove('show');
+
+      // prepare metrics and show modal
+      showMetrics({names:namesCleared, incidents:incCleared, random:randCleared});
+    });
+
+    function showMetrics({names,incidents,random}){
+      const total = names+incidents+random;
+      const memoryFreed = (total * (Math.random()*1.1 + 0.6)).toFixed(2);
+      const stressReduced = Math.min(98, Math.floor(total*7 + Math.random()*30));
+      const speedBoost = Math.min(40, Math.floor(total*2 + Math.random()*10));
+
+      $('#m-names').textContent = names;
+      $('#m-incidents').textContent = incidents;
+      $('#m-random').textContent = random;
+
+      $('#modalText').textContent = `You've cleared ${total} item${total!==1?'s':''}.`;
+      const suggestions = generateSuggestions();
+      $('#suggestions').innerHTML = suggestions.map(s=>`• ${s}`).join('<br>');
+
+      // small typed reveal animation for numbers
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+    }
+
+    $('#closeModal').addEventListener('click', ()=>{
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      showToast('You feel lighter — great job! 🌿');
+    });
+
+    // --- small toast ---
+    function showToast(msg){
+      const t = document.createElement('div');
+      t.textContent = msg; t.style.position='fixed';t.style.bottom='16px';t.style.left='50%';t.style.transform='translateX(-50%)';
+      t.style.background='linear-gradient(90deg,#0ea5a144,#60a5fa44)';t.style.padding='10px 16px';t.style.borderRadius='12px';t.style.boxShadow='0 8px 30px rgba(2,6,23,0.5)';t.style.color='#021';t.style.fontWeight='700';t.style.zIndex=9999;document.body.appendChild(t);
+      setTimeout(()=>{t.style.transition='opacity 300ms';t.style.opacity='0';setTimeout(()=>t.remove(),300)},2200);
+    }
+
+    // --- simple suggestions generator ---
+    function generateSuggestions(){
+      const pool = [
+        'Take 3 deep breaths', 'Go for a 10-minute walk', 'Drink a glass of water', 'Write one thing you’re grateful for',
+        'Stretch your shoulders and neck', 'Play a favorite song', 'Close your eyes for 60 seconds', 'Open a window and breathe fresh air'
+      ];
+      shuffle(pool);
+      return pool.slice(0,3);
+    }
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+
+    // --- Start ---
+    renderAll();
+
+    // small accessibility: ESC closes modal
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }});
+  </script>
 </body>
 </html>
