@@ -12,11 +12,11 @@ A visually stunning, minimalistic web interface designed to help you feel mental
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/mind-flush-webui.git
+   git clone https://github.com/yourusername/MindFlush.git
    ```
 2. Navigate into the project folder:
    ```bash
-   cd mind-flush-webui
+   cd MindFlush
    ```
 3. Open `index.html` in your browser.
 
