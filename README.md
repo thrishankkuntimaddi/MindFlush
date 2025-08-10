@@ -12,7 +12,7 @@ A visually stunning, minimalistic web interface designed to help you feel mental
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/MindFlush.git
+   git clone https://github.com/thrishankkuntimaddi/MindFlush.git
    ```
 2. Navigate into the project folder:
    ```bash
